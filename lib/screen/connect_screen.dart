@@ -1,3 +1,4 @@
+import 'package:flic_bluetooth_project/screen/home_screen.dart';
 import 'package:flutter/material.dart';
 
 
@@ -12,11 +13,7 @@ class _ConnectScreen extends State<ConnectScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-          title: Center(
-            child: Text('Press and hold'),
-          )
-      ),
+      appBar: CommonAppBar(appBarType: AppBarType.finding),
     );
   }
 }

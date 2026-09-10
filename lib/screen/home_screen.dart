@@ -1,10 +1,13 @@
-import 'dart:ffi';
+import 'package:flic_bluetooth_project/FlickProvider.dart';
+import 'package:flic_bluetooth_project/flic.dart';
 import 'package:flic_bluetooth_project/screen/connect_screen.dart';
 import 'package:flic_bluetooth_project/screen/flic_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flic_button/flic_button.dart';
 import 'package:snackbar/snackbar.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
   // List<BluetoothDevice> connectedFlics = [];
   // BluetoothDevice? foundDevice;
   FlicButtonPlugin? flicButtonManager;
-  List<Flic2Button> connectedFlics = [];
+  // List<Flic2Button> connectedFlics = [];
 
   @override
   void initState() {
@@ -27,9 +30,11 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
 
   @override
   Widget build(BuildContext context) {
+    final flickProvider = context.watch<FlickProvider>();
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text('임시앱바')
+      appBar: CommonAppBar(
+        appBarType: AppBarType.home,
       ),
       body: GridView.builder(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -38,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
           childAspectRatio: 1.0,
         ),
         padding: const EdgeInsets.all(16.0),
-        itemCount: connectedFlics.length,
+        itemCount: flickProvider.flics.length,
         itemBuilder: (context, index) {
           return GestureDetector(
             onTap: () {
@@ -46,23 +51,36 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => FlicScreen(device: connectedFlics[index]),
+                    builder: (context) => FlicScreen(flicIndex: index, flicButtonManager: flicButtonManager,),
                 )
               );
             },
             child: Column(
               children: [
-                Card(
-                    child: Text('Flic: ${connectedFlics[index].name}')
+                Image.asset(
+                  'asset/flic_icon.png',
+                  width: 120,
+                  height: 120,
                 ),
+                Text('My Flic $index'),
               ],
             )
           );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        label: Text('Add Flic to Phone'),
-        icon: Icon(Icons.add_circle),
+        label: Row(
+          children: [
+            Text('Add Flic to Phone'),
+            Padding(
+              padding: EdgeInsets.only(left: 8),
+              child: Icon(
+                Icons.add_circle,
+                size: 30,
+              ),
+            )
+          ],
+        ),
         onPressed: () {
           //블루투스 연결 화면으로 이동
           startScanFlic();
@@ -113,8 +131,9 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
         await flicButtonManager?.listenToFlic2Button(button.uuid);
     print('listen result: $result');
     setState(() {
-      connectedFlics.add(button);
+      context.read<FlickProvider>().addFlic(button);
     });
+
 
     Navigator.pop(context);
   }
@@ -134,94 +153,122 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
   @override
   void onButtonClicked(Flic2ButtonClick buttonClick) {
     print('-----button clicked');
-    String? clickCount = '';
+    ClickType clickType;
     if (buttonClick.isSingleClick) {
-      clickCount = '1';
+      clickType = ClickType.pushAction;
     }
     else if (buttonClick.isDoubleClick) {
-      clickCount = '2';
+      clickType = ClickType.doublePushAction;
     }
     else if (buttonClick.isHold) {
-      clickCount = '길게누름';
+      clickType = ClickType.holdAction;
     } else {
-      clickCount = '0';
+      clickType = ClickType.pushAction;
     }
     var snackBar = SnackBar(
-        content: Text('${clickCount} 번 클릭'),
+        content: Text('<${context.read<FlickProvider>().getFlickAction(buttonClick.button.uuid, clickType)}> 기능 실행'),
       duration: Duration(seconds: 1),
     );
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
+}
 
-  // Flic 장치 스캔
-  // void startScan() {
-  //   print('startscan');
-  //   requestPermissions();
-  //   FlutterBluePlus.startScan(timeout: Duration(seconds: 30));
-  //
-  //   FlutterBluePlus.scanResults.listen((results) async {
-  //     for (ScanResult result in results) {
-  //       print('-----------device found: ${result.device.name}');
-  //
-  //       if (result.device.name.contains('Flic')) {
-  //         foundDevice = result.device;
-  //         FlutterBluePlus.stopScan();
-  //         await connectToDevice(result.device);
-  //         discoverServices(result.device);
-  //
-  //         if (mounted) {
-  //           // Navigator.pop(context);
-  //         }
-  //         return;
-  //       }
-  //     }
-  //   });
-  // }
-  //
-  // // 장치 연결
-  // Future<void> connectToDevice(BluetoothDevice device) async {
-  //   await device.connect(
-  //     license: License.nonprofit,
-  //   );
-  //   setState(() {
-  //     if (!connectedFlics.contains(device))
-  //       connectedFlics.add(device);
-  //   });
-  //   print('---------Connected to ${device.name}');
-  //   print('---------${connectedFlics.length}');
-  // }
-  //
-  // void disconnectFromDevice(BluetoothDevice device) async {
-  //   await device.disconnect();
-  //   print('Disconnected from ${device.name}');
-  // }
-  //
-  // // 권한 요청
-  // void requestPermissions() async {
-  //   if (await Permission.location.request().isGranted) {
-  //     print('----------location permission granted');
-  //   }
-  // }
-  //
-  // void discoverServices(BluetoothDevice device) async {
-  //   List<BluetoothService> services = await device.discoverServices();
-  //   for (BluetoothService service in services) {
-  //     print('Service: ${service.uuid}');
-  //     if (service.uuid.toString() == '00420000-8f59-4420-870d-84f3b617e493') {
-  //       for (BluetoothCharacteristic characteristic in service.characteristics) {
-  //         if (characteristic.uuid.toString() == '00420002-8f59-4420-870d-84f3b617e493') {
-  //           print('-----------flic 버튼 찾음');
-  //           enableNotifications(characteristic);
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
-  //
-  // void enableNotifications(BluetoothCharacteristic characteristic) async {
-  //   await characteristic.setNotifyValue(true);
-  //   characteristic.value.listen((data) {
-  //     print('------Notification received: $data');
-  //   });
-  // }
+class CommonAppBar extends StatelessWidget implements PreferredSizeWidget{
+  final AppBarType appBarType;
+  final VoidCallback? onConnect;
+  final VoidCallback? onDisconnect;
+
+  const CommonAppBar({
+    super.key,
+    required this.appBarType,
+    this.onConnect,
+    this.onDisconnect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+        title: appBarType == AppBarType.home ? Image.asset(
+          'asset/logo.png',
+          height: 36,
+        ) : appBarType == AppBarType.finding ? Center(
+          child: Text('Press and hold')
+        ): null,
+        actions:
+        getAppBarActions(appBarType, context, onConnect, onDisconnect)
+    );
+
+  }
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+}
+
+enum AppBarType {
+  home, finding, flicscreen
+}
+
+List<Widget> getAppBarActions(AppBarType type, BuildContext context, VoidCallback? onConnect, VoidCallback? onDisconnect) {
+  switch (type) {
+    case AppBarType.home:
+      return [
+        IconButton(
+          icon: Icon(Icons.more_vert),
+          onPressed: () {},
+        )
+      ];
+    case AppBarType.finding:
+      return [];
+    case AppBarType.flicscreen:
+      return [
+        IconButton(
+          icon: Icon(Icons.more_vert),
+          onPressed: () {},
+        ),
+        IconButton(
+          icon: Icon(Icons.settings),
+          onPressed: () {
+            showModalBottomSheet<void>(
+                context: context,
+                builder: (BuildContext context) {
+                  return SizedBox(
+                    height: 200,
+                    child: Center(
+                      child: ListView(
+                        padding: const EdgeInsets.all(8),
+                        children: [
+                          ListTile(
+                            title: Center(
+                                child: TextButton(
+                                    child: Text('connect'),
+                                  onPressed: () {
+                                      onConnect?.call();
+                                      Navigator.of(context).pop();
+                                  },
+                                )
+                            )
+                          ),
+                          ListTile(
+                            title: Center(
+                                child: TextButton(
+                                  child: Text('disconnect'),
+                                  onPressed: () {
+                                    onDisconnect?.call();
+                                    Navigator.of(context).pop();
+                                  },
+                                )
+                            )
+                          )
+                        ],
+                      )
+                    )
+                  );
+                }
+            );
+          },
+        )
+      ];
+    default:
+      return [];
+  }
 }
