@@ -89,6 +89,8 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
             )
           ],
         ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
         onPressed: () {
           //블루투스 연결 화면으로 이동
           startScanFlic();

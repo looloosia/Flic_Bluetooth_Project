@@ -81,6 +81,12 @@ class _FlicScreen extends State<FlicScreen> {
                           Expanded(
                             child: Text('${ClickType.values[index].toString().substring('ClickType.'.length)}')
                           ),
+                          Padding(
+                            padding: EdgeInsets.only(right: 10),
+                            child: Icon(Icons.add_circle),
+                            
+                          )
+
                         ],
                       ),
                     ),
