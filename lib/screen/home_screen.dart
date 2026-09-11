@@ -2,6 +2,7 @@ import 'package:flic_bluetooth_project/FlickProvider.dart';
 import 'package:flic_bluetooth_project/flic.dart';
 import 'package:flic_bluetooth_project/screen/connect_screen.dart';
 import 'package:flic_bluetooth_project/screen/flic_screen.dart';
+import 'package:flic_bluetooth_project/flicDatabase.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -21,16 +22,23 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
   // BluetoothDevice? foundDevice;
   FlicButtonPlugin? flicButtonManager;
   // List<Flic2Button> connectedFlics = [];
+  final flicDB = flicDatabase.instance;
 
   @override
   void initState() {
     super.initState();
-    initFlicPlugin();
+    initialize();
+  }
+
+  void initialize() async {
+    await flicDB.initDatabase();
+    await initFlicPlugin();
   }
 
   @override
   Widget build(BuildContext context) {
     final flickProvider = context.watch<FlickProvider>();
+
 
     return Scaffold(
       appBar: CommonAppBar(
@@ -95,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
     );
   }
 
-  void initFlicPlugin() async {
+  Future<void> initFlicPlugin() async {
     await [
       Permission.location,
       Permission.bluetoothScan,
@@ -107,19 +115,52 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
     });
 
     await Future.delayed(Duration(milliseconds: 500));
-
+    final savedFlics = await flicDB.loadItems();
     final buttons = await flicButtonManager!.getFlic2Buttons();
-    if (buttons.isNotEmpty){
-      print('이미 있는 버튼을 불러오기');
+    for (var button in buttons) {
 
-      for (var button in buttons) {
-        flicButtonManager!.forgetButton(button.uuid);
+      print('there is $button');
+      if (savedFlics.any((row) => row['uuid'] == button.uuid)) {
+        final saved = savedFlics.firstWhere((row) => row['uuid'] == button.uuid);
+        final String? pushAction = saved['pushAction'] as String?;
+        final String? doublePushAction = saved['doublePushAction'] as String?;
+        final String? holdAction = saved['holdAction'] as String?;
+        context.read<FlickProvider>().addFlic(button, button.uuid, pushAction, doublePushAction, holdAction);
+        await flicButtonManager!.listenToFlic2Button(button.uuid);
       }
     }
+    // if (buttons.isNotEmpty){
+    //   print('이미 있는 버튼을 불러오기');
+    //
+    //   for (var button in buttons) {
+    //     flicButtonManager!.forgetButton(button.uuid);
+    //   }
+    // }
   }
 
   void startScanFlic() {
     flicButtonManager?.scanForFlic2();
+  }
+
+  @override
+  void onPairedButtonDiscovered(Flic2Button button) async {
+    super.onPairedButtonDiscovered(button);
+
+    print('---------이미 등록된 버튼 발견');
+    await flicButtonManager?.listenToFlic2Button(button.uuid);
+    final savedFlics = await flicDB.loadItems();
+    if (!savedFlics.any((row) => row['uuid'] == button.uuid)) {
+      await flicDB.insertFlic(button.uuid);
+    }
+    final saved = savedFlics.firstWhere((row) => row['uuid'] == button.uuid);
+    final String? pushAction = saved['pushAction'] as String?;
+    final String? doublePushAction = saved['doublePushAction'] as String?;
+    final String? holdAction = saved['holdAction'] as String?;
+
+    context.read<FlickProvider>().addFlic(button, button.uuid, pushAction, doublePushAction, holdAction);
+
+    Navigator.of(context).pop();
+
   }
 
   @override
@@ -131,9 +172,10 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
         await flicButtonManager?.listenToFlic2Button(button.uuid);
     print('listen result: $result');
     setState(() {
-      context.read<FlickProvider>().addFlic(button);
+      context.read<FlickProvider>().addFlic(button, button.uuid, null, null, null);
     });
-
+    // 저장
+    await flicDB.insertFlic(button.uuid);
 
     Navigator.pop(context);
   }

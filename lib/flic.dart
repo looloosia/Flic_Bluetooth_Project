@@ -2,6 +2,7 @@ import 'package:flic_button/flic_button.dart';
 
 class Flic {
   final Flic2Button flicbutton;
+  final String uuid;
 
   String? pushAction;
   String? doublePushAction;
@@ -9,6 +10,7 @@ class Flic {
 
   Flic({
     required this.flicbutton,
+    required this.uuid,
     this.pushAction, this.doublePushAction, this.holdAction,
   });
 }

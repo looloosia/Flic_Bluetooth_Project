@@ -1,6 +1,7 @@
 import 'package:flic_bluetooth_project/FlickProvider.dart';
 import 'package:flic_bluetooth_project/flic.dart';
 import 'package:flic_bluetooth_project/screen/home_screen.dart';
+import 'package:flic_bluetooth_project/flicDatabase.dart';
 import 'package:flutter/material.dart';
 import 'package:flic_button/flic_button.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +17,7 @@ class FlicScreen extends StatefulWidget {
 
 class _FlicScreen extends State<FlicScreen> {
   TextEditingController? textEditingController;
+  flicDatabase flicDB = flicDatabase.instance;
 
   @override
   void initState() {
@@ -103,12 +105,17 @@ class _FlicScreen extends State<FlicScreen> {
                                   ),
                                   TextButton(
                                     child: Text('추가'),
-                                    onPressed: () {
-                                      setState(() {
-                                        context.read<FlickProvider>().editFlicAction(widget.flicIndex, ClickType.values[index],
+                                    onPressed: () async {
+                                      String uuid = context.read<FlickProvider>().flics[widget.flicIndex].uuid;
+                                      await flicDB.updateFlicAction(uuid, ClickType.values[index], textEditingController!.text);
+                                      context.read<FlickProvider>().editFlicAction(widget.flicIndex, ClickType.values[index],
                                           textEditingController!.text);
-                                        textEditingController!.text = '';
+                                      setState(() {
+
+                                        textEditingController!.clear();
+
                                       });
+                                      if (!mounted) return;
                                       Navigator.of(context).pop();
                                     },
                                   )
