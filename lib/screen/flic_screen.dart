@@ -84,7 +84,7 @@ class _FlicScreen extends State<FlicScreen> {
                           Padding(
                             padding: EdgeInsets.only(right: 10),
                             child: Icon(Icons.add_circle),
-                            
+
                           )
 
                         ],
@@ -102,6 +102,7 @@ class _FlicScreen extends State<FlicScreen> {
                             actions: [
                               Row(
                                 children: [
+                                  SizedBox(width: 100),
                                   TextButton(
                                     child: Text('취소'),
                                     onPressed: () {

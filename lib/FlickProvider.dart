@@ -39,8 +39,6 @@ class FlickProvider with ChangeNotifier {
             return flic.doublePushAction;
           case ClickType.holdAction:
             return flic.holdAction;
-          default:
-            return '';
         }
       }
     }
