@@ -3,13 +3,26 @@ import 'package:flutter/material.dart';
 
 
 class ConnectScreen extends StatefulWidget {
-  const ConnectScreen({super.key});
+  final VoidCallback onStartScan;
+
+  const ConnectScreen({super.key, required this.onStartScan});
 
   @override
   State<ConnectScreen> createState() => _ConnectScreen();
 }
 
 class _ConnectScreen extends State<ConnectScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      widget.onStartScan();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

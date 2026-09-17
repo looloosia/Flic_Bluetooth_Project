@@ -1,32 +1,57 @@
+
 import 'package:flic_bluetooth_project/FlickProvider.dart';
 import 'package:flic_bluetooth_project/flic.dart';
+import 'package:flic_bluetooth_project/screen/FlicsViewScreen.dart';
 import 'package:flic_bluetooth_project/screen/connect_screen.dart';
 import 'package:flic_bluetooth_project/screen/flic_screen.dart';
 import 'package:flic_bluetooth_project/flicDatabase.dart';
+import 'package:flic_bluetooth_project/screen/radio_view_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:flic_button/flic_button.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
+import 'package:flic_bluetooth_project/FlickProvider.dart';
+import 'package:flic_bluetooth_project/api_service.dart';
+import 'package:flic_bluetooth_project/flic.dart';
 import 'package:snackbar/snackbar.dart';
 import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
+
 }
 
-class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
+class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTickerProviderStateMixin{
   // List<BluetoothDevice> connectedFlics = [];
   // BluetoothDevice? foundDevice;
   FlicButtonPlugin? flicButtonManager;
   // List<Flic2Button> connectedFlics = [];
+  late TabController _tabController;
   final flicDB = flicDatabase.instance;
 
   @override
   void initState() {
     super.initState();
+
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+    );
+
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {
+
+        });
+      }
+      });
+
     initialize();
   }
 
@@ -36,47 +61,27 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final flickProvider = context.watch<FlickProvider>();
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
+  @override
+  Widget build(BuildContext context) {
 
     return Scaffold(
       appBar: CommonAppBar(
         appBarType: AppBarType.home,
+        tabController: _tabController,
       ),
-      body: GridView.builder(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-          crossAxisSpacing: 16.0,
-          childAspectRatio: 1.0,
-        ),
-        padding: const EdgeInsets.all(16.0),
-        itemCount: flickProvider.flics.length,
-        itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () {
-              // flic 기능들 화면으로 이동
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => FlicScreen(flicIndex: index, flicButtonManager: flicButtonManager,),
-                )
-              );
-            },
-            child: Column(
-              children: [
-                Image.asset(
-                  'asset/flic_icon.png',
-                  width: 120,
-                  height: 120,
-                ),
-                Text('My Flic $index'),
-              ],
-            )
-          );
-        },
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          FlicsViewScreen(),
+          RadioViewScreen(),
+        ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: _tabController.index == 0 ? FloatingActionButton.extended(
         label: Row(
           children: [
             Text('Add Flic to Phone'),
@@ -93,16 +98,100 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
         foregroundColor: Colors.black,
         onPressed: () {
           //블루투스 연결 화면으로 이동
-          startScanFlic();
+
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ConnectScreen(),
+              builder: (context) => ConnectScreen(onStartScan: startScanFlic,),
             ),
           );
         },
-      ),
+      )
+          : null,
     );
+  }
+
+  @override
+  void onPairedButtonDiscovered(Flic2Button button) async {
+    super.onPairedButtonDiscovered(button);
+
+    // print('---------이미 등록된 버튼 발견');
+    // await flicButtonManager?.listenToFlic2Button(button.uuid);
+    // final savedFlics = await flicDB.loadItems();
+    //
+    // if (!savedFlics.any((row) => row['uuid'] == button.uuid)) {
+    //   await flicDB.insertFlic(button.uuid);
+    // }
+    // final saved = savedFlics.firstWhere((row) => row['uuid'] == button.uuid);
+    // final String? pushAction = saved['pushAction'] as String?;
+    // final String? doublePushAction = saved['doublePushAction'] as String?;
+    // final String? holdAction = saved['holdAction'] as String?;
+    //
+    // context.read<FlickProvider>().addFlic(button, button.uuid, pushAction, doublePushAction, holdAction);
+    //
+    // Navigator.of(context).pop();
+
+  }
+
+  @override
+  void onButtonFound(Flic2Button button) async {
+    super.onButtonFound(button);
+    print('--------버튼 found');
+
+    final result =
+    await flicButtonManager?.listenToFlic2Button(button.uuid);
+    print('listen result: $result');
+    context.read<FlickProvider>().addFlic(button, button.uuid, null, null, null);
+    // 저장
+    await flicDB.insertFlic(button.uuid);
+
+    Navigator.pop(context);
+  }
+
+  @override
+  void onButtonDiscovered(String buttonAddress) {
+    super.onButtonDiscovered(buttonAddress);
+    print('Flic 기기 발견');
+  }
+
+  @override
+  void onButtonConnected()
+  {
+    super.onButtonConnected();
+    print('버튼 연결됨');
+  }
+  @override
+  void onButtonClicked(Flic2ButtonClick buttonClick) async {
+    print('-----button clicked');
+    ClickType clickType;
+    int buttonIndex;
+    if (buttonClick.button.uuid == context.read<FlickProvider>().flics[0].uuid) {
+      buttonIndex = 0;
+    } else if (buttonClick.button.uuid == context.read<FlickProvider>().flics[1].uuid) {
+      buttonIndex = 1;
+    } else if (buttonClick.button.uuid == context.read<FlickProvider>().flics[2].uuid) {
+      buttonIndex = 2;
+    } else {
+      buttonIndex = -1;
+    }
+    if (buttonClick.isSingleClick) {
+      clickType = ClickType.pushAction;
+    }
+    else if (buttonClick.isDoubleClick) {
+      clickType = ClickType.doublePushAction;
+    }
+    else if (buttonClick.isHold) {
+      clickType = ClickType.holdAction;
+    } else {
+      clickType = ClickType.pushAction;
+    }
+    var action = context.read<FlickProvider>().getFlickAction(buttonClick.button.uuid, clickType);
+    await sendRequest(action);
+    var snackBar = SnackBar(
+      content: Text('<${context.read<FlickProvider>().getFlickAction(buttonClick.button.uuid, clickType)}> 기능 실행'),
+      duration: Duration(seconds: 1),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
   Future<void> initFlicPlugin() async {
@@ -110,11 +199,11 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
       Permission.location,
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
+      Permission.accessLocalNetwork,
     ].request();
 
-    setState(() {
-      flicButtonManager = FlicButtonPlugin(flic2listener: this);
-    });
+    if (!mounted) return;
+    flicButtonManager = FlicButtonPlugin(flic2listener: this);
 
     await Future.delayed(Duration(milliseconds: 500));
     final savedFlics = await flicDB.loadItems();
@@ -143,90 +232,20 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener {
   void startScanFlic() {
     flicButtonManager?.scanForFlic2();
   }
-
-  @override
-  void onPairedButtonDiscovered(Flic2Button button) async {
-    super.onPairedButtonDiscovered(button);
-
-    print('---------이미 등록된 버튼 발견');
-    await flicButtonManager?.listenToFlic2Button(button.uuid);
-    final savedFlics = await flicDB.loadItems();
-    if (!savedFlics.any((row) => row['uuid'] == button.uuid)) {
-      await flicDB.insertFlic(button.uuid);
-    }
-    final saved = savedFlics.firstWhere((row) => row['uuid'] == button.uuid);
-    final String? pushAction = saved['pushAction'] as String?;
-    final String? doublePushAction = saved['doublePushAction'] as String?;
-    final String? holdAction = saved['holdAction'] as String?;
-
-    context.read<FlickProvider>().addFlic(button, button.uuid, pushAction, doublePushAction, holdAction);
-
-    Navigator.of(context).pop();
-
-  }
-
-  @override
-  void onButtonFound(Flic2Button button) async {
-    super.onButtonFound(button);
-    print('--------버튼 found');
-
-    final result =
-        await flicButtonManager?.listenToFlic2Button(button.uuid);
-    print('listen result: $result');
-    setState(() {
-      context.read<FlickProvider>().addFlic(button, button.uuid, null, null, null);
-    });
-    // 저장
-    await flicDB.insertFlic(button.uuid);
-
-    Navigator.pop(context);
-  }
-
-  @override
-  void onButtonDiscovered(String buttonAddress) {
-    super.onButtonDiscovered(buttonAddress);
-    print('Flic 기기 발견');
-  }
-
-  @override
-  void onButtonConnected()
-  {
-    super.onButtonConnected();
-    print('버튼 연결됨');
-  }
-  @override
-  void onButtonClicked(Flic2ButtonClick buttonClick) {
-    print('-----button clicked');
-    ClickType clickType;
-    if (buttonClick.isSingleClick) {
-      clickType = ClickType.pushAction;
-    }
-    else if (buttonClick.isDoubleClick) {
-      clickType = ClickType.doublePushAction;
-    }
-    else if (buttonClick.isHold) {
-      clickType = ClickType.holdAction;
-    } else {
-      clickType = ClickType.pushAction;
-    }
-    var snackBar = SnackBar(
-        content: Text('<${context.read<FlickProvider>().getFlickAction(buttonClick.button.uuid, clickType)}> 기능 실행'),
-      duration: Duration(seconds: 1),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-  }
 }
 
 class CommonAppBar extends StatelessWidget implements PreferredSizeWidget{
   final AppBarType appBarType;
   final VoidCallback? onConnect;
   final VoidCallback? onDisconnect;
+  final TabController? tabController;
 
   const CommonAppBar({
     super.key,
     required this.appBarType,
     this.onConnect,
     this.onDisconnect,
+    this.tabController,
   });
 
   @override
@@ -238,14 +257,23 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget{
         ) : appBarType == AppBarType.finding ? Center(
           child: Text('Press and hold')
         ): null,
-        actions:
-        getAppBarActions(appBarType, context, onConnect, onDisconnect)
+        actions: getAppBarActions(appBarType, context, onConnect, onDisconnect),
+        bottom: appBarType == AppBarType.home ? TabBar(
+          controller: tabController,
+          tabs: [
+            Tab(text: 'flics'),
+            Tab(text: 'radio'),
+          ],
+        ) : null
     );
 
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => Size.fromHeight(
+    appBarType == AppBarType.home
+      ? kToolbarHeight + kTextTabBarHeight
+      : kToolbarHeight,);
 }
 
 enum AppBarType {

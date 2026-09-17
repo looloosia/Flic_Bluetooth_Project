@@ -1,34 +1,114 @@
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
 
-class RoseApiService {
-  Future<void> powerOn() async {
-    final url = Uri.parse('https://{ip}:9283/remote_bar_order');
+Future<void> sendRequest(String? action) async {
+  final client = HttpClient();
 
-    final Map<String, dynamic> requestBody = {
-      "barControl": "remote_bar_order.power_onoff",
-      "value": -1,
-      "roseToken": ""
-    };
+  client.connectionTimeout = const Duration(seconds: 15);
+  client.badCertificateCallback =
+      (X509Certificate cert, String host, int port) {
+    print('인증서 검증 실패 감지: $host:$port');
 
-    try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: jsonEncode({
-          requestBody
-        })
-      );
 
-      if (response.statusCode == 200) {
-        print('------전송 완료');
-      } else  {
-        print('-------전송 실패: 상태 코드 ${response.statusCode}');
-      }
-    } catch (e) {
-      print('------통신 에러 발생: $e');
-    }
+    return host == '192.168.0.23' && port == 9283;
+  };
+
+  final bodyText;
+  switch (action) {
+    case 'standby':
+      bodyText = 'remote_bar_order_sleep_on_off';
+    case 'reboot':
+      bodyText = 'remote_bar_order.reboot';
+    case 'playPause':
+      bodyText = 17;
+    case 'next':
+      bodyText = 18;
+    case 'prev':
+      bodyText = 19;
+    case 'mute':
+      bodyText = 'remote_bar_order.mute';
+    case 'volume10':
+      bodyText = 10;
+    case 'volume20':
+      bodyText = 20;
+    case 'volume30':
+      bodyText = 30;
+    default:
+      bodyText = 'remote_bar_order_sleep_on_off';
+  }
+
+  try {
+    String path;
+    Map<String, dynamic> requestBody;
+    if (action == 'standby' || action == 'reboot' || action == 'mute') {
+      path = '/remote_bar_order';
+      requestBody = {'barControl': bodyText};
+    } else if (action == 'playPause' || action == 'next' || action == 'prev') {
+      path = '/current_play_state';
+      requestBody = {'currentPlayState': bodyText};
+    } else if (action == 'volume10' || action == 'volume20' || action == 'volume30') {
+      path = '/volume';
+      requestBody = {
+        'volumeType': 'volume_set',
+        'volumeValue': bodyText,
+      };
+    } else {return;}
+
+
+    final url = Uri.parse(
+      'https://192.168.0.23:9283$path',
+    );
+    print('1. 연결 시작: $url');
+    final request = await client.postUrl(url);
+    print('2. HTTPS 연결 성공');
+
+    request.headers.set(
+      HttpHeaders.contentTypeHeader,
+      'application/json',
+    );
+
+    request.headers.set(
+      HttpHeaders.acceptHeader,
+      '*/*'
+    );
+
+    final jsonBody = jsonEncode(requestBody);
+    final bodyBytes = utf8.encode(jsonBody);
+
+    request.contentLength = bodyBytes.length;
+
+    print('보내는 데이터: $jsonBody');
+    request.add(bodyBytes);
+
+    final response = await request.close();
+
+    print('status = ${response.statusCode}');
+    print('Content-Type: ${request.headers.value(HttpHeaders.contentTypeHeader)}');
+    print('Content-Length: ${request.contentLength}');
+    print('보내는 데이터: $jsonBody');
+    final responseBody = await response.transform(utf8.decoder).join();
+    print('response = $responseBody');
+  } on HttpException catch (e) {
+    print('HTTP 응답 전에 ROSE가 연결 종료: $e');
+  } on SocketException catch (e) {
+    print('Socket 오류: $e');
+  } catch (e) {
+    print('통신 오류: $e');
+  } finally {
+    client.close(force: true);
+  }
+}
+
+Future<List<dynamic>?> fetchRadios() async {
+  final url = Uri.parse(
+      'https://api.roseaudio.kr/radio/v2/channel?title=&page=0&size=10&sortType=NAME_ASC&regionId=0');
+  final response = await http.get(url);
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body)['radioChannels'];
+  } else {
+    print('----error. Status code: ${response.statusCode}');
+    return null;
   }
 }

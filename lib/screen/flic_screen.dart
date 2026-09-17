@@ -18,6 +18,7 @@ class FlicScreen extends StatefulWidget {
 class _FlicScreen extends State<FlicScreen> {
   TextEditingController? textEditingController;
   flicDatabase flicDB = flicDatabase.instance;
+  String dropdownValue = ActionType.playPause.name;
 
   @override
   void initState() {
@@ -94,43 +95,57 @@ class _FlicScreen extends State<FlicScreen> {
                       return showDialog<void>(
                         context: context,
                         builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: Text('추가할 기능을 입력하세요.'),
-                            content: TextField(
-                              controller: textEditingController,
-                            ),
-                            actions: [
-                              Row(
-                                children: [
-                                  SizedBox(width: 100),
-                                  TextButton(
-                                    child: Text('취소'),
-                                    onPressed: () {
-                                      textEditingController!.text = '';
-                                      Navigator.of(context).pop();
-                                    },
-                                  ),
-                                  TextButton(
-                                    child: Text('추가'),
-                                    onPressed: () async {
-                                      String uuid = context.read<FlickProvider>().flics[widget.flicIndex].uuid;
-                                      await flicDB.updateFlicAction(uuid, ClickType.values[index], textEditingController!.text);
-                                      context.read<FlickProvider>().editFlicAction(widget.flicIndex, ClickType.values[index],
-                                          textEditingController!.text);
-                                      setState(() {
-
-                                        textEditingController!.clear();
-
+                          return StatefulBuilder(
+                            builder: (context, setDialogState) {
+                              return AlertDialog(
+                                title: Text('추가할 기능을 선택하세요.'),
+                                content: DropdownButton<String>(
+                                    value: dropdownValue,
+                                    items: ActionType.values.map((action) => DropdownMenuItem<String>(
+                                        value: action.name,
+                                        child: Text(action.name)
+                                    )).toList(),
+                                    onChanged: (String? value) {
+                                      setDialogState(() {
+                                        dropdownValue = value!;
                                       });
-                                      if (!mounted) return;
-                                      Navigator.of(context).pop();
-                                    },
-                                  )
-                                ],
-                              )
+                                    }
+                                ),
+                                actions: [
+                                  Row(
+                                    children: [
+                                      SizedBox(width: 100),
+                                      TextButton(
+                                        child: Text('취소'),
+                                        onPressed: () {
+                                          textEditingController!.text = '';
+                                          Navigator.of(context).pop();
+                                        },
+                                      ),
+                                      TextButton(
+                                        child: Text('추가'),
+                                        onPressed: () async {
+                                          String uuid = context.read<FlickProvider>().flics[widget.flicIndex].uuid;
+                                          await flicDB.updateFlicAction(uuid, ClickType.values[index], dropdownValue);
 
-                            ],
+                                          // switch (dropdownValue) {
+                                          //   case 'standby'
+                                          // }
+                                          context.read<FlickProvider>().editFlicAction(widget.flicIndex, ClickType.values[index],
+                                              dropdownValue);
+                                          if (!mounted) return;
+                                          if (dropdownValue.isEmpty) return;
+                                          Navigator.of(context).pop();
+                                        },
+                                      )
+                                    ],
+                                  )
+
+                                ],
+                              );
+                            }
                           );
+
                         }
                       );
                     }

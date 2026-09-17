@@ -35,7 +35,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   flutter_blue_plus: ^2.3.12
-  permission_handler: 11.3.0
+  permission_handler: ^12.0.3
   flic_button: ^1.2.11
   snackbar: ^1.0.2
   provider: ^6.1.5+1
@@ -43,6 +43,8 @@ dependencies:
   sqflite: ^2.4.4
   path: ^1.9.1
   http: ^1.6.0
+  network_info_plus: ^8.2.1
+  flutter_foreground_task: ^11.0.3
 dev_dependencies:
   flutter_test:
     sdk: flutter

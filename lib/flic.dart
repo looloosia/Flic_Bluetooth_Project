@@ -20,3 +20,15 @@ enum ClickType {
   doublePushAction,
   holdAction,
 }
+
+enum ActionType {
+  standby,
+  reboot,
+  playPause,
+  next,
+  prev,
+  mute,
+  volume10,
+  volume20,
+  volume30,
+}
