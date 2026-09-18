@@ -9,23 +9,99 @@ class RadioViewScreen extends StatefulWidget {
 }
 
 class _RadioViewScreenState extends State<RadioViewScreen> {
+  final ScrollController _scrollController = ScrollController();
+  int page = 0;
+  final int size = 10;
+  List<dynamic> radios = [];
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _scrollController.addListener(_onScroll);
+    loadFirstPage();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-        future: fetchRadios(),
-        builder: (context, snapshot) {
-          return ListView.builder(
-          itemCount: snapshot.data != null ? snapshot.data!.length
-                      : 0,
-          itemBuilder: (context, index) {
-            final radio = snapshot.data![index];
-            return ListTile(
-              title: Text('${radio['title']}'),
-              onTap: () {},
-            );
-          },
-        );
-        }
+
+    return SafeArea(
+        bottom: true,
+        child: Column (
+          children: <Widget>[
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                itemCount: radios.length,
+                itemBuilder: (context, index) {
+                  final radio = radios[index];
+                  return ListTile(
+                    title: Text('${radio['title']}'),
+                    onTap: () {
+                      playRadio(radios, index);
+                    },
+                  );
+                },
+              ),
+            ),
+            if (isLoading)
+              Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                      height: 50,
+                      child: Center(
+                        child: CircularProgressIndicator(),
+                      )
+                  )
+              )
+          ],
+        )
     );
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      loadNextPage();
+    }
+  }
+
+  Future<void> loadFirstPage() async {
+    final result = await fetchRadios(0);
+
+    if (result == null) return;
+    if (!mounted) return;
+
+    setState(() {
+      radios = result;
+    });
+  }
+
+  Future<void> loadNextPage() async {
+    if (isLoading) return;
+    page++;
+
+    setState(() {
+      isLoading = true;
+    });
+
+
+    final newRadios = await fetchRadios(page);
+    setState(() {
+      if (newRadios != null) {
+        radios.addAll(newRadios);
+      }
+    });
+
+    setState(() {
+      isLoading = false;
+    });
+
   }
 }

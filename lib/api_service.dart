@@ -100,9 +100,9 @@ Future<void> sendRequest(String? action) async {
   }
 }
 
-Future<List<dynamic>?> fetchRadios() async {
+Future<List<dynamic>?> fetchRadios(int page) async {
   final url = Uri.parse(
-      'https://api.roseaudio.kr/radio/v2/channel?title=&page=0&size=10&sortType=NAME_ASC&regionId=0');
+      'https://api.roseaudio.kr/radio/v2/channel?title=&page=$page&size=15&sortType=NAME_ASC&regionId=0');
   final response = await http.get(url);
 
   if (response.statusCode == 200) {
@@ -111,4 +111,49 @@ Future<List<dynamic>?> fetchRadios() async {
     print('----error. Status code: ${response.statusCode}');
     return null;
   }
+}
+
+Future<void> playRadio(
+  List<dynamic> radios,
+  int index,
+) async {
+  try {
+    final client = HttpClient();
+
+    client.connectionTimeout = const Duration(seconds: 15);
+    client.badCertificateCallback =
+        (X509Certificate cert, String host, int port) {
+      print('인증서 검증 실패 감지: $host:$port');
+
+
+      return host == '192.168.0.23' && port == 9283;
+    };
+
+    final request = await client.postUrl(
+      Uri.parse('https://192.168.0.23:9283/rose_radio_play'));
+
+    request.headers.set(
+      HttpHeaders.contentTypeHeader,
+      'application/json',
+    );
+
+    request.headers.set(
+        HttpHeaders.acceptHeader,
+        '*/*'
+    );
+    final jsonBody = jsonEncode({'data': radios, 'currentPosition': index});
+    final bodyBytes = utf8.encode(jsonBody);
+
+    request.contentLength = bodyBytes.length;
+
+    print('보내는 데이터: $jsonBody');
+    request.add(bodyBytes);
+
+    final response = await request.close();
+
+    print('status = ${response.statusCode}');
+  } catch(e) {
+    print('error : $e');
+  }
+
 }
