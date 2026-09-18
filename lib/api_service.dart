@@ -134,7 +134,7 @@ Future<void> playRadio(
 
     request.headers.set(
       HttpHeaders.contentTypeHeader,
-      'application/json',
+      'application/json; charset=utf-8',
     );
 
     request.headers.set(
