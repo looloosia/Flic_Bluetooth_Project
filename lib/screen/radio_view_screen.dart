@@ -1,5 +1,7 @@
+import 'package:flic_bluetooth_project/FlickProvider.dart';
 import 'package:flic_bluetooth_project/api_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class RadioViewScreen extends StatefulWidget {
   const RadioViewScreen({super.key});
@@ -14,6 +16,7 @@ class _RadioViewScreenState extends State<RadioViewScreen> {
   final int size = 10;
   List<dynamic> radios = [];
   bool isLoading = false;
+
 
   @override
   void initState() {
@@ -45,7 +48,10 @@ class _RadioViewScreenState extends State<RadioViewScreen> {
                   return ListTile(
                     title: Text('${radio['title']}'),
                     onTap: () {
-                      playRadio(radios, index);
+                      String? selectedIp = context.read<FlickProvider>().selectedIp;
+                      if (selectedIp != null) {
+                        playRadio(selectedIp, radios, index);
+                      }
                     },
                   );
                 },
@@ -93,6 +99,9 @@ class _RadioViewScreenState extends State<RadioViewScreen> {
 
 
     final newRadios = await fetchRadios(page);
+
+    if (!mounted) return;
+
     setState(() {
       if (newRadios != null) {
         radios.addAll(newRadios);

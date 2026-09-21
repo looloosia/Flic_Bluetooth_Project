@@ -6,6 +6,7 @@ import 'package:flic_button/flic_button.dart';
 class FlickProvider with ChangeNotifier {
   List<Flic> flics = [];
   bool addFlicRequested = false;
+  String? selectedIp = null;
 
   void addFlic(Flic2Button newFlic, String uuid, String? pushAction, String? doublePushAction, String? holdAction) {
     flics.add(Flic(

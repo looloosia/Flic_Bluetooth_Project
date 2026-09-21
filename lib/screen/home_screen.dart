@@ -58,6 +58,41 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTicke
   void initialize() async {
     await flicDB.initDatabase();
     await initFlicPlugin();
+    if (context.read<FlickProvider>().selectedIp == null) {
+      await selectRose();
+    }
+  }
+
+  Future<void> selectRose() async {
+    List<String> roseIps = await findRoses();
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        if (roseIps.length == 0) {
+          print('-------찾은 로즈ip가 없음');
+        }
+        return AlertDialog(
+          title: const Text('연결할 로즈 기기를 선택하세요'),
+          content: SizedBox(
+            child: ListView.builder(
+              itemCount: roseIps.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  child: Card(
+                    child: Text('${roseIps[index]}'),
+
+                  ),
+                  onTap: () {
+                    context.read<FlickProvider>().selectedIp = roseIps[index];
+                    Navigator.of(context).pop();
+                  },
+                );
+              },
+            ),
+          )
+        );
+      }
+    );
   }
 
   @override
@@ -186,7 +221,9 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTicke
       clickType = ClickType.pushAction;
     }
     var action = context.read<FlickProvider>().getFlickAction(buttonClick.button.uuid, clickType);
-    await sendRequest(action);
+    if (context.read<FlickProvider>().selectedIp != null) {
+      await sendRequest(context.read<FlickProvider>().selectedIp!, action);
+    }
     var snackBar = SnackBar(
       content: Text('<${context.read<FlickProvider>().getFlickAction(buttonClick.button.uuid, clickType)}> 기능 실행'),
       duration: Duration(seconds: 1),
