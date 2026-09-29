@@ -7,19 +7,17 @@ import 'package:provider/provider.dart';
 
 
 class FlicsViewScreen extends StatefulWidget {
-  final VoidCallback onSearchTap;
-
-  const FlicsViewScreen({super.key, required this.onSearchTap});
+  const FlicsViewScreen({super.key,});
 
   @override
-  State<FlicsViewScreen> createState() => _FlicsViewScreenState();
+  State<FlicsViewScreen> createState() => FlicsViewScreenState();
 
 
 }
 
-class _FlicsViewScreenState extends State<FlicsViewScreen> {
+class FlicsViewScreenState extends State<FlicsViewScreen> {
   FlicButtonPlugin? flicButtonManager;
-  
+
   @override
   Widget build(BuildContext context) {
     final flickProvider = context.watch<FlickProvider>();
@@ -56,5 +54,9 @@ class _FlicsViewScreenState extends State<FlicsViewScreen> {
         );
       },
     );
+  }
+
+  void openSearch() {
+    print('------FLic검색');
   }
 }

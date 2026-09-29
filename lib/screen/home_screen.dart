@@ -34,7 +34,8 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTicke
   // List<Flic2Button> connectedFlics = [];
   late TabController _tabController;
   final flicDB = flicDatabase.instance;
-
+  final GlobalKey<FlicsViewScreenState> _flicsKey = GlobalKey<FlicsViewScreenState>();
+  final GlobalKey<RadioViewScreenState> _radioKey = GlobalKey<RadioViewScreenState>();
 
   @override
   void initState() {
@@ -133,18 +134,25 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTicke
 
   @override
   Widget build(BuildContext context) {
-    VoidCallback onSearchTap;
+    bool? isSearching;
     return Scaffold(
       appBar: CommonAppBar(
         appBarType: AppBarType.home,
-        onSearchTap: _tabController.index == 0 ? ,
+        onSearchTap: () {
+          setState(() {
+            isSearching = true;
+          });
+          _tabController.index == 0 ? _flicsKey.currentState?.openSearch()
+            : _radioKey.currentState?.openSearch();
+          },
         tabController: _tabController,
+        isSearching: isSearching,
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          FlicsViewScreen(onSearchTap: onSearchTap,),
-          RadioViewScreen(),
+          FlicsViewScreen(key: _flicsKey,),
+          RadioViewScreen(key: _radioKey),
         ],
       ),
       floatingActionButton: _tabController.index == 0 ? FloatingActionButton.extended(
@@ -308,6 +316,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget{
   final VoidCallback? onDisconnect;
   final VoidCallback? onSearchTap;
   final TabController? tabController;
+  final bool? isSearching;
 
   const CommonAppBar({
     super.key,
@@ -316,6 +325,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget{
     this.onDisconnect,
     this.onSearchTap,
     this.tabController,
+    this.isSearching,
   });
 
   @override
@@ -327,7 +337,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget{
         ) : appBarType == AppBarType.finding ? Center(
           child: Text('Press and hold')
         ): null,
-        actions: getAppBarActions(appBarType, context, onConnect, onDisconnect, onSearchTap),
+        actions: getAppBarActions(appBarType, context, onConnect, onDisconnect, onSearchTap, isSearching),
         bottom: appBarType == AppBarType.home ? TabBar(
           controller: tabController,
           tabs: [
@@ -350,10 +360,11 @@ enum AppBarType {
   home, finding, flicscreen,
 }
 
-List<Widget> getAppBarActions(AppBarType type, BuildContext context, VoidCallback? onConnect, VoidCallback? onDisconnect, VoidCallback? onSearchTap) {
+List<Widget> getAppBarActions(AppBarType type, BuildContext context, VoidCallback? onConnect, VoidCallback? onDisconnect, VoidCallback? onSearchTap, bool? isSearching) {
   switch (type) {
     case AppBarType.home:
       return [
+        isSearching != null && isSearching ? SearchBar() :
         IconButton(
           icon: Icon(Icons.search),
           onPressed: onSearchTap,

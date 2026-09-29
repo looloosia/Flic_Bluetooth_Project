@@ -7,10 +7,10 @@ class RadioViewScreen extends StatefulWidget {
   const RadioViewScreen({super.key});
 
   @override
-  State<RadioViewScreen> createState() => _RadioViewScreenState();
+  State<RadioViewScreen> createState() => RadioViewScreenState();
 }
 
-class _RadioViewScreenState extends State<RadioViewScreen> {
+class RadioViewScreenState extends State<RadioViewScreen> {
   final ScrollController _scrollController = ScrollController();
   int page = 0;
   final int size = 10;
@@ -112,5 +112,9 @@ class _RadioViewScreenState extends State<RadioViewScreen> {
       isLoading = false;
     });
 
+  }
+
+  void openSearch() {
+    print('Radio 검색');
   }
 }
