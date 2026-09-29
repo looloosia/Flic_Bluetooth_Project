@@ -36,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTicke
   final flicDB = flicDatabase.instance;
   final GlobalKey<FlicsViewScreenState> _flicsKey = GlobalKey<FlicsViewScreenState>();
   final GlobalKey<RadioViewScreenState> _radioKey = GlobalKey<RadioViewScreenState>();
+  bool isSearching = false;
 
   @override
   void initState() {
@@ -134,7 +135,6 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTicke
 
   @override
   Widget build(BuildContext context) {
-    bool? isSearching;
     return Scaffold(
       appBar: CommonAppBar(
         appBarType: AppBarType.home,
@@ -142,9 +142,7 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTicke
           setState(() {
             isSearching = true;
           });
-          _tabController.index == 0 ? _flicsKey.currentState?.openSearch()
-            : _radioKey.currentState?.openSearch();
-          },
+        },
         tabController: _tabController,
         isSearching: isSearching,
       ),
@@ -331,7 +329,51 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget{
   @override
   Widget build(BuildContext context) {
     return AppBar(
-        title: appBarType == AppBarType.home ? Image.asset(
+        title:
+          appBarType == AppBarType.home ? isSearching! ?
+              Row(
+                children: [
+                  Image.asset(
+                  'asset/logo.png',
+                  height: 36,),
+                  Expanded(child:
+                    Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 1),
+                        child: SearchAnchor(
+                          builder: (BuildContext context, SearchController controller) {
+                            return SearchBar(
+                              controller: controller,
+                              onTap: () {
+
+                              },
+                              onChanged: (_) {
+
+                              },
+                              onSubmitted: (value) {
+                                _tabController.index == 0 ? _flicsKey.currentState?.openSearch()
+                                    : _radioKey.currentState?.openSearch();
+                                },
+                              leading: const Icon(Icons.search),
+                            );
+                          },
+                          suggestionsBuilder:
+                          (BuildContext context, SearchController controller) {
+                            return List<ListTile>.generate(5, (int index) {
+                              final String item = 'item $index';
+                              return ListTile(
+                                title: Text(item),
+                                onTap: () {
+                                  controller.closeView(item);
+                                },
+                              );
+                            });
+                          },
+                        )
+                    ))
+
+                ],
+              )
+           : Image.asset(
           'asset/logo.png',
           height: 36,
         ) : appBarType == AppBarType.finding ? Center(
@@ -364,11 +406,11 @@ List<Widget> getAppBarActions(AppBarType type, BuildContext context, VoidCallbac
   switch (type) {
     case AppBarType.home:
       return [
-        isSearching != null && isSearching ? SearchBar() :
-        IconButton(
-          icon: Icon(Icons.search),
-          onPressed: onSearchTap,
-        ),
+        if (isSearching == null || !isSearching)
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: onSearchTap,
+          ),
         IconButton(
           icon: Icon(Icons.more_vert),
           onPressed: () {},
