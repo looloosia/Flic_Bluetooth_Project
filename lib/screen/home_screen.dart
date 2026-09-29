@@ -35,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTicke
   late TabController _tabController;
   final flicDB = flicDatabase.instance;
 
+
   @override
   void initState() {
     super.initState();
@@ -64,7 +65,33 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTicke
   }
 
   Future<void> selectRose() async {
+    showDialog<void>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            content: SizedBox(
+              height: 100,
+              child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('로즈 기기 찾는 중'),
+                      SizedBox(
+                        height: 8,
+                      ),
+                      CircularProgressIndicator(),
+                    ],
+                  )
+              ),
+            )
+          );
+        }
+    );
     List<String> roseIps = await findRoses();
+    if (!mounted) return;
+
+    Navigator.of(context).pop();
+
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -74,6 +101,7 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTicke
         return AlertDialog(
           title: const Text('연결할 로즈 기기를 선택하세요'),
           content: SizedBox(
+            height: 80,
             child: ListView.builder(
               itemCount: roseIps.length,
               itemBuilder: (context, index) {
@@ -85,6 +113,8 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTicke
                   onTap: () {
                     context.read<FlickProvider>().selectedIp = roseIps[index];
                     Navigator.of(context).pop();
+                    var snackBar = SnackBar(content: Text('${roseIps[index]}에 연결됨'),duration: Duration(seconds: 1));
+                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
                   },
                 );
               },
@@ -103,16 +133,17 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTicke
 
   @override
   Widget build(BuildContext context) {
-
+    VoidCallback onSearchTap;
     return Scaffold(
       appBar: CommonAppBar(
         appBarType: AppBarType.home,
+        onSearchTap: _tabController.index == 0 ? ,
         tabController: _tabController,
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          FlicsViewScreen(),
+          FlicsViewScreen(onSearchTap: onSearchTap,),
           RadioViewScreen(),
         ],
       ),
@@ -275,6 +306,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget{
   final AppBarType appBarType;
   final VoidCallback? onConnect;
   final VoidCallback? onDisconnect;
+  final VoidCallback? onSearchTap;
   final TabController? tabController;
 
   const CommonAppBar({
@@ -282,6 +314,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget{
     required this.appBarType,
     this.onConnect,
     this.onDisconnect,
+    this.onSearchTap,
     this.tabController,
   });
 
@@ -294,7 +327,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget{
         ) : appBarType == AppBarType.finding ? Center(
           child: Text('Press and hold')
         ): null,
-        actions: getAppBarActions(appBarType, context, onConnect, onDisconnect),
+        actions: getAppBarActions(appBarType, context, onConnect, onDisconnect, onSearchTap),
         bottom: appBarType == AppBarType.home ? TabBar(
           controller: tabController,
           tabs: [
@@ -314,13 +347,17 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget{
 }
 
 enum AppBarType {
-  home, finding, flicscreen
+  home, finding, flicscreen,
 }
 
-List<Widget> getAppBarActions(AppBarType type, BuildContext context, VoidCallback? onConnect, VoidCallback? onDisconnect) {
+List<Widget> getAppBarActions(AppBarType type, BuildContext context, VoidCallback? onConnect, VoidCallback? onDisconnect, VoidCallback? onSearchTap) {
   switch (type) {
     case AppBarType.home:
       return [
+        IconButton(
+          icon: Icon(Icons.search),
+          onPressed: onSearchTap,
+        ),
         IconButton(
           icon: Icon(Icons.more_vert),
           onPressed: () {},
