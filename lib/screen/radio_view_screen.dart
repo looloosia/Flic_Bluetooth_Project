@@ -15,6 +15,7 @@ class RadioViewScreenState extends State<RadioViewScreen> {
   int page = 0;
   final int size = 10;
   List<dynamic> radios = [];
+  List<dynamic> showRadios = [];
   bool isLoading = false;
 
 
@@ -24,6 +25,7 @@ class RadioViewScreenState extends State<RadioViewScreen> {
 
     _scrollController.addListener(_onScroll);
     loadFirstPage();
+    showRadios = radios;
   }
 
   @override
@@ -34,7 +36,6 @@ class RadioViewScreenState extends State<RadioViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return SafeArea(
         bottom: true,
         child: Column (
@@ -42,15 +43,15 @@ class RadioViewScreenState extends State<RadioViewScreen> {
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
-                itemCount: radios.length,
+                itemCount: showRadios.length,
                 itemBuilder: (context, index) {
-                  final radio = radios[index];
+                  final radio = showRadios[index];
                   return ListTile(
                     title: Text('${radio['title']}'),
                     onTap: () {
                       String? selectedIp = context.read<FlickProvider>().selectedIp;
                       if (selectedIp != null) {
-                        playRadio(selectedIp, radios, index);
+                        playRadio(selectedIp, showRadios, index);
                       }
                     },
                   );
@@ -114,7 +115,21 @@ class RadioViewScreenState extends State<RadioViewScreen> {
 
   }
 
-  void openSearch() {
+  void openSearch(String value) {
     print('Radio 검색');
+    if (value.isEmpty) {
+      print('value is empty');
+      showRadios = radios;
+      return;
+    }
+    for (var radio in radios) {
+      showRadios = [];
+      if (radio['title'].toString().contains(value)) {
+        setState(() {
+          showRadios.add(radio);
+        });
+
+      }
+    }
   }
 }

@@ -143,6 +143,10 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTicke
             isSearching = true;
           });
         },
+        onSubmitted: (String value) {
+          _tabController.index == 0 ? _flicsKey.currentState?.openSearch(value)
+              : _radioKey.currentState?.openSearch(value);
+        },
         tabController: _tabController,
         isSearching: isSearching,
       ),
@@ -314,6 +318,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget{
   final VoidCallback? onDisconnect;
   final VoidCallback? onSearchTap;
   final TabController? tabController;
+  final ValueChanged<String>? onSubmitted;
   final bool? isSearching;
 
   const CommonAppBar({
@@ -322,6 +327,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget{
     this.onConnect,
     this.onDisconnect,
     this.onSearchTap,
+    this.onSubmitted,
     this.tabController,
     this.isSearching,
   });
@@ -346,12 +352,12 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget{
                               onTap: () {
 
                               },
-                              onChanged: (_) {
-
+                              onChanged: (value) {
+                                print('onChanged');
+                                onSubmitted!(value);
                               },
                               onSubmitted: (value) {
-                                _tabController.index == 0 ? _flicsKey.currentState?.openSearch()
-                                    : _radioKey.currentState?.openSearch();
+                                onSubmitted!(value);
                                 },
                               leading: const Icon(Icons.search),
                             );

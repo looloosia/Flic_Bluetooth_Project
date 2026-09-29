@@ -56,7 +56,7 @@ class FlicsViewScreenState extends State<FlicsViewScreen> {
     );
   }
 
-  void openSearch() {
+  void openSearch(String value) {
     print('------FLic검색');
   }
 }
