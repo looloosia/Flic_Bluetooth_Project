@@ -150,12 +150,21 @@ class _HomeScreenState extends State<HomeScreen> with Flic2Listener, SingleTicke
         tabController: _tabController,
         isSearching: isSearching,
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          FlicsViewScreen(key: _flicsKey,),
-          RadioViewScreen(key: _radioKey),
-        ],
+      body: GestureDetector(
+        onTap: () {
+          if (isSearching) {
+            setState(() {
+              isSearching = false;
+            });
+          }
+        },
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            FlicsViewScreen(key: _flicsKey,),
+            RadioViewScreen(key: _radioKey),
+          ],
+        ),
       ),
       floatingActionButton: _tabController.index == 0 ? FloatingActionButton.extended(
         label: Row(
