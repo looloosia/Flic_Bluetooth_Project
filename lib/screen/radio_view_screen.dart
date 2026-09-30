@@ -25,8 +25,6 @@ class RadioViewScreenState extends State<RadioViewScreen> {
 
     _scrollController.addListener(_onScroll);
     loadFirstPage();
-    showRadios = radios;
-    print('---------init');
   }
 
   @override
@@ -37,7 +35,6 @@ class RadioViewScreenState extends State<RadioViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('---------build');
     return SafeArea(
         bottom: true,
         child: Column (
@@ -87,7 +84,11 @@ class RadioViewScreenState extends State<RadioViewScreen> {
     if (result == null) return;
     if (!mounted) return;
 
-    radios = result;
+    setState(() {
+      radios = result;
+      showRadios = List.from(radios);
+    });
+
   }
 
   Future<void> loadNextPage() async {
@@ -120,7 +121,7 @@ class RadioViewScreenState extends State<RadioViewScreen> {
     if (value.isEmpty) {
       print('value is empty');
       setState(() {
-        showRadios = radios;
+        showRadios = List.from(radios);
       });
       return;
     }
